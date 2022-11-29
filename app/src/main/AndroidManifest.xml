@@ -40,6 +40,15 @@
             </intent-filter>
 
         </activity>
+        <activity
+            android:name=".auth.LoginActivity"
+            android:exported="true"
+            android:label="@string/title_activity_login"
+            android:theme="@style/Theme.MyNotes.NoActionBar">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
         
     </application>
 
