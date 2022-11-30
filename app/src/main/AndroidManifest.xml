@@ -60,6 +60,10 @@
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
-            </application>
+        </activity>
+        <activity
+            android:name=".profile.ProfileActivity"
+            android:exported="true" />
+    </application>
 
 </manifest>
