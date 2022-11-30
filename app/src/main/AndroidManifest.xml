@@ -53,7 +53,13 @@
             android:name=".auth.SignUpActivity"
             android:exported="true"
             android:theme="@style/Theme.MyNotes.NoActionBar" />
-        
-    </application>
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.MyNotes.NoActionBar">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+            </application>
 
 </manifest>
