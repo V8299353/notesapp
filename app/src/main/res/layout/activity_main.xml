@@ -17,14 +17,15 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
+            app:menu="@menu/menu_main"
             app:popupTheme="@style/Theme.MyNotes.PopupOverlay" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fragContainerView"
-        android:name="com.example.mynotes.FirstFragment"
+        android:layout_height="match_parent"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:name="com.example.mynotes.FirstFragment"/>
 
 </LinearLayout>

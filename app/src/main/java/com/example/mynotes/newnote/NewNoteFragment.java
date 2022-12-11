@@ -1,7 +1,9 @@
 package com.example.mynotes.newnote;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -15,6 +17,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.Observer;
@@ -51,6 +54,8 @@ public class NewNoteFragment extends Fragment {
     private StorageHelper storageHelper;
     private AuthenticationHelper authenticationHelper;
     private FirestoreHelper firestoreHelper;
+    private boolean locationPermissionGranted = false;
+    ActivityResultLauncher<String[]> locationPermissionRequest;
 
     @Nullable
     @Override
@@ -60,6 +65,26 @@ public class NewNoteFragment extends Fragment {
         authenticationHelper = new AuthenticationHelper();
         firestoreHelper = new FirestoreHelper();
         newNoteViewModel = new ViewModelProvider(requireActivity()).get(NewNoteViewModel.class);
+
+
+
+        locationPermissionRequest = registerForActivityResult(
+                new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+                    boolean a = Boolean.TRUE.equals(result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false));
+                    if (a) {
+                        FragmentTransaction fragmentTransaction = requireActivity().getSupportFragmentManager().beginTransaction();
+                        fragmentTransaction.addToBackStack("newNoteFrag");
+                        fragmentTransaction.add(R.id.newNoteFragContainerView, MapsFragment.newInstance());
+                        fragmentTransaction.commit();
+                    } else {
+                        Toast.makeText(
+                                requireContext(),
+                                "Unable to show location - permission required",
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                });
+
         return binding.getRoot();
     }
 
@@ -72,10 +97,27 @@ public class NewNoteFragment extends Fragment {
         binding.mapCta.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FragmentTransaction fragmentTransaction = requireActivity().getSupportFragmentManager().beginTransaction();
-                fragmentTransaction.addToBackStack("newNoteFrag");
-                fragmentTransaction.add(R.id.newNoteFragContainerView, MapsFragment.newInstance());
-                fragmentTransaction.commit();
+
+
+                if (ActivityCompat.checkSelfPermission(
+                        requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                        requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+
+                    String[] arr = new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION};
+                    locationPermissionRequest.launch(arr);
+
+
+                } else {
+
+                    FragmentTransaction fragmentTransaction = requireActivity().getSupportFragmentManager().beginTransaction();
+                    fragmentTransaction.addToBackStack("newNoteFrag");
+                    fragmentTransaction.add(R.id.newNoteFragContainerView, MapsFragment.newInstance());
+                    fragmentTransaction.commit();
+
+                }
+
+
             }
         });
 
@@ -95,6 +137,7 @@ public class NewNoteFragment extends Fragment {
             oldTask = newNoteViewModel.getEditTaskMode();
             binding.noteTitle.setText(oldTask.getTitle());
             binding.noteDesc.setText(oldTask.getDescription());
+
             if (oldTask.getImageUrl() != null) {
                 Glide.with(requireContext())
                         .load(oldTask.getImageUrl())
@@ -105,6 +148,7 @@ public class NewNoteFragment extends Fragment {
             }
             if (oldTask.getMapUrl() != null) {
                 binding.mapCta.setText(oldTask.getMapUrl());
+                newNoteViewModel.setLatLngFromUrl(oldTask.getMapUrl());
                 lastLatLng = oldTask.getMapUrl();
             }
             binding.deleteNoteCta.setVisibility(View.VISIBLE);
@@ -112,12 +156,9 @@ public class NewNoteFragment extends Fragment {
             binding.deleteNoteCta.setVisibility(View.GONE);
         }
 
-        newNoteViewModel.getLatLng().observe(requireActivity(), new Observer<LatLng>() {
-            @Override
-            public void onChanged(LatLng latLng) {
-                lastLatLng = "https://www.google.com/maps/place/" + latLng.latitude;
-                binding.mapCta.setText(lastLatLng);
-            }
+        newNoteViewModel.getLatLng().observe(requireActivity(), latLng -> {
+            lastLatLng = "https://www.google.com/maps/place/" + latLng.latitude+","+latLng.longitude;
+            binding.mapCta.setText(lastLatLng);
         });
 
         binding.deleteNoteCta.setOnClickListener(new View.OnClickListener() {
@@ -129,23 +170,23 @@ public class NewNoteFragment extends Fragment {
                     firestoreHelper.deleteNotes(oldTask.getUuid()).addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
-                            if(task.isSuccessful()) {
-                                Toast.makeText(requireContext(),"Note deleted Successfully",Toast.LENGTH_LONG).show();
+                            if (task.isSuccessful()) {
+                                Toast.makeText(requireContext(), "Note deleted Successfully", Toast.LENGTH_LONG).show();
                             } else {
-                                Toast.makeText(requireContext(),"Note delete failed",Toast.LENGTH_LONG).show();
+                                Toast.makeText(requireContext(), "Note delete failed", Toast.LENGTH_LONG).show();
                             }
                             processBarHandler.hide();
                             requireActivity().finish();
                         }
                     });
-                }else{
+                } else {
                     firestoreHelper.deleteNotes(oldTask.getUuid()).addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
-                            if(task.isSuccessful()) {
-                                Toast.makeText(requireContext(),"Note deleted Successfully",Toast.LENGTH_LONG).show();
+                            if (task.isSuccessful()) {
+                                Toast.makeText(requireContext(), "Note deleted Successfully", Toast.LENGTH_LONG).show();
                             } else {
-                                Toast.makeText(requireContext(),"Note delete failed",Toast.LENGTH_LONG).show();
+                                Toast.makeText(requireContext(), "Note delete failed", Toast.LENGTH_LONG).show();
                             }
                             processBarHandler.hide();
                             requireActivity().finish();
@@ -160,55 +201,52 @@ public class NewNoteFragment extends Fragment {
         binding.saveNoteCta.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!authenticationHelper.isUserLoggedIn()){
+                if (!authenticationHelper.isUserLoggedIn()) {
                     Intent i = new Intent(requireActivity(), LoginActivity.class);
                     i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(i);
-                }else if (binding.noteTitle.getText() == null || binding.noteTitle.getText().toString().isEmpty() ||binding.noteDesc.getText() == null|| binding.noteDesc.getText().toString().isEmpty()){
+                } else if (binding.noteTitle.getText() == null || binding.noteTitle.getText().toString().isEmpty() || binding.noteDesc.getText() == null || binding.noteDesc.getText().toString().isEmpty()) {
                     Toast.makeText(requireContext(), "Title or Description Cannot be empty", Toast.LENGTH_LONG).show();
-                }else if (newNoteViewModel.isNewTask()){
+                } else if (newNoteViewModel.isNewTask()) {
                     processBarHandler.show();
                     String uuid = UUID.randomUUID().toString();
-                    if (imageUri!=null){
-                        storageHelper.uploadNotesImage(imageUri,uuid).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                    if (imageUri != null) {
+                        storageHelper.uploadNotesImage(imageUri, uuid).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                             @Override
                             public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
-                                if (task.isSuccessful()){
+                                if (task.isSuccessful()) {
 
-                                    storageHelper.getNotesImageStorageReference(authenticationHelper.getCurrentUser().getUid(),uuid).getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
+                                    storageHelper.getNotesImageStorageReference(authenticationHelper.getCurrentUser().getUid(), uuid).getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
                                         @Override
                                         public void onComplete(@NonNull Task<Uri> urlTask) {
-                                            if (task.isSuccessful()){
+                                            if (task.isSuccessful()) {
                                                 String downloadUri = urlTask.getResult().toString();
-                                                TaskModel taskModel = new TaskModel(uuid,binding.noteTitle.getText().toString(),binding.noteDesc.getText().toString(),lastLatLng,downloadUri,System.currentTimeMillis(),System.currentTimeMillis());
-                                                firestoreHelper.addNewDocument(taskModel,uuid).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                    @Override
-                                                    public void onComplete(@NonNull Task<Void> task) {
-                                                        if(task.isSuccessful()) {
-                                                            Toast.makeText(requireContext(),"Note Added Successfully",Toast.LENGTH_LONG).show();
-                                                            requireActivity().finish();
-                                                        } else {
-                                                            storageHelper.deleteImageWithReference(storageHelper.getNotesImageStorageReference(authenticationHelper.getCurrentUser().getUid(),uuid));
-                                                            Toast.makeText(requireContext(),"Note Failed to add",Toast.LENGTH_LONG).show();
-                                                        }
-                                                        processBarHandler.hide();
+                                                TaskModel taskModel = new TaskModel(uuid, binding.noteTitle.getText().toString(), binding.noteDesc.getText().toString(), lastLatLng, downloadUri, System.currentTimeMillis(), System.currentTimeMillis());
+                                                firestoreHelper.addNewDocument(taskModel, uuid).addOnCompleteListener(task1 -> {
+                                                    if (task1.isSuccessful()) {
+                                                        Toast.makeText(requireContext(), "Note Added Successfully", Toast.LENGTH_LONG).show();
+                                                        requireActivity().finish();
+                                                    } else {
+                                                        storageHelper.deleteImageWithReference(storageHelper.getNotesImageStorageReference(authenticationHelper.getCurrentUser().getUid(), uuid));
+                                                        Toast.makeText(requireContext(), "Note Failed to add", Toast.LENGTH_LONG).show();
                                                     }
+                                                    processBarHandler.hide();
                                                 });
-                                            }else{
-                                                Toast.makeText(requireContext(),"Note Failed to add",Toast.LENGTH_LONG).show();
+                                            } else {
+                                                Toast.makeText(requireContext(), "Note Failed to add", Toast.LENGTH_LONG).show();
                                                 processBarHandler.hide();
                                             }
                                         }
                                     });
-                                }else {
-                                    Toast.makeText(requireContext(),"Note Failed To add",Toast.LENGTH_LONG).show();
+                                } else {
+                                    Toast.makeText(requireContext(), "Note Failed To add", Toast.LENGTH_LONG).show();
                                     processBarHandler.hide();
                                 }
                             }
                         });
-                    }else{
-                        TaskModel taskModel = new TaskModel(uuid,binding.noteTitle.getText().toString(),binding.noteDesc.getText().toString(),lastLatLng,null,System.currentTimeMillis(),System.currentTimeMillis());
-                        firestoreHelper.addNewDocument(taskModel,uuid).addOnCompleteListener(new OnCompleteListener<Void>() {
+                    } else {
+                        TaskModel taskModel = new TaskModel(uuid, binding.noteTitle.getText().toString(), binding.noteDesc.getText().toString(), lastLatLng, null, System.currentTimeMillis(), System.currentTimeMillis());
+                        firestoreHelper.addNewDocument(taskModel, uuid).addOnCompleteListener(new OnCompleteListener<Void>() {
                             @Override
                             public void onComplete(@NonNull Task<Void> task) {
 
@@ -222,54 +260,54 @@ public class NewNoteFragment extends Fragment {
                             }
                         });
                     }
-                }else {
+                } else {
                     processBarHandler.show();
-                    if (imageUri!=null){
-                        storageHelper.uploadNotesImage(imageUri,oldTask.getUuid()).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                    if (imageUri != null) {
+                        storageHelper.uploadNotesImage(imageUri, oldTask.getUuid()).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                             @Override
                             public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
-                                if (task.isSuccessful()){
+                                if (task.isSuccessful()) {
 
-                                    storageHelper.getNotesImageStorageReference(authenticationHelper.getCurrentUser().getUid(),oldTask.getUuid()).getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
+                                    storageHelper.getNotesImageStorageReference(authenticationHelper.getCurrentUser().getUid(), oldTask.getUuid()).getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
                                         @Override
                                         public void onComplete(@NonNull Task<Uri> task) {
-                                            if (task.isSuccessful()){
+                                            if (task.isSuccessful()) {
                                                 String downloadUri = task.getResult().toString();
-                                                TaskModel taskModel = new TaskModel(oldTask.getUuid(),binding.noteTitle.getText().toString(),binding.noteDesc.getText().toString(),lastLatLng,downloadUri,oldTask.getCreatedDate(),System.currentTimeMillis());
-                                                firestoreHelper.addNewDocument(taskModel,oldTask.getUuid()).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                TaskModel taskModel = new TaskModel(oldTask.getUuid(), binding.noteTitle.getText().toString(), binding.noteDesc.getText().toString(), lastLatLng, downloadUri, oldTask.getCreatedDate(), System.currentTimeMillis());
+                                                firestoreHelper.addNewDocument(taskModel, oldTask.getUuid()).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                     @Override
                                                     public void onComplete(@NonNull Task<Void> task) {
-                                                        if(task.isSuccessful()) {
-                                                            Toast.makeText(requireContext(),"Note Added Successfully",Toast.LENGTH_LONG).show();
+                                                        if (task.isSuccessful()) {
+                                                            Toast.makeText(requireContext(), "Note Added Successfully", Toast.LENGTH_LONG).show();
                                                             requireActivity().finish();
                                                         } else {
-                                                            storageHelper.deleteImageWithReference(storageHelper.getNotesImageStorageReference(authenticationHelper.getCurrentUser().getUid(),oldTask.getUuid()));
-                                                            Toast.makeText(requireContext(),"Note Failed to add",Toast.LENGTH_LONG).show();
+                                                            storageHelper.deleteImageWithReference(storageHelper.getNotesImageStorageReference(authenticationHelper.getCurrentUser().getUid(), oldTask.getUuid()));
+                                                            Toast.makeText(requireContext(), "Note Failed to add", Toast.LENGTH_LONG).show();
                                                         }
                                                         processBarHandler.hide();
                                                     }
                                                 });
-                                            }else{
-                                                Toast.makeText(requireContext(),"Note Failed to add",Toast.LENGTH_LONG).show();
+                                            } else {
+                                                Toast.makeText(requireContext(), "Note Failed to add", Toast.LENGTH_LONG).show();
                                                 processBarHandler.hide();
                                             }
                                         }
                                     });
-                                }else{
-                                    Toast.makeText(requireContext(),"Note Failed To add",Toast.LENGTH_LONG).show();
+                                } else {
+                                    Toast.makeText(requireContext(), "Note Failed To add", Toast.LENGTH_LONG).show();
                                     processBarHandler.hide();
                                 }
                             }
                         });
-                    }else {
-                        TaskModel taskModel = new TaskModel(oldTask.getUuid(),binding.noteTitle.getText().toString(),binding.noteDesc.getText().toString(),lastLatLng,oldTask.getImageUrl(),oldTask.getCreatedDate(),System.currentTimeMillis());
-                        firestoreHelper.addNewDocument(taskModel,oldTask.getUuid()).addOnCompleteListener(new OnCompleteListener<Void>() {
+                    } else {
+                        TaskModel taskModel = new TaskModel(oldTask.getUuid(), binding.noteTitle.getText().toString(), binding.noteDesc.getText().toString(), lastLatLng, oldTask.getImageUrl(), oldTask.getCreatedDate(), System.currentTimeMillis());
+                        firestoreHelper.addNewDocument(taskModel, oldTask.getUuid()).addOnCompleteListener(new OnCompleteListener<Void>() {
                             @Override
                             public void onComplete(@NonNull Task<Void> task) {
-                                if (task.isSuccessful()){
+                                if (task.isSuccessful()) {
                                     Toast.makeText(requireContext(), "Note Added Successfully", Toast.LENGTH_LONG).show();
                                     requireActivity().finish();
-                                }else {
+                                } else {
                                     Toast.makeText(requireContext(), "Note Failed to add", Toast.LENGTH_LONG).show();
                                 }
                                 processBarHandler.hide();
@@ -303,4 +341,11 @@ public class NewNoteFragment extends Fragment {
             }
         }
     });
+
+    private void requestPermission() {
+
+
+    }
+
 }
+

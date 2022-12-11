@@ -2,6 +2,7 @@ package com.example.mynotes.newnote;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,6 +16,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -51,12 +53,13 @@ public class MapsFragment extends Fragment {
     FusedLocationProviderClient fusedLocationProviderClient;
 
     LatLng defaultLocation = new LatLng(-33.8523341, 151.2106085);
+    LatLng exisLocation = null;
 
     static final int DEFAULT_ZOOM = 15;
 
     Location lastKnownLocation;
 
-    private OnMapReadyCallback callback = new OnMapReadyCallback() {
+    private final OnMapReadyCallback callback = new OnMapReadyCallback() {
         @SuppressLint("MissingPermission")
         @Override
         public void onMapReady(@NonNull GoogleMap googleMap) {
@@ -66,16 +69,19 @@ public class MapsFragment extends Fragment {
             map.getUiSettings().setMyLocationButtonEnabled(true);
             getDeviceLocation();
 
-            map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-                @Override
-                public void onMapClick(@NonNull LatLng latLng) {
-                    map.clear();
-                    String lat = String.format(Locale.getDefault(), "%.3f", latLng.latitude);
-                    String lng = String.format(Locale.getDefault(), "%.3f", latLng.longitude);
-                    MarkerOptions marker = new MarkerOptions().position(latLng).title(lat + "," + lng);
-                    MapsFragment.this.latLng = latLng;
-                    map.addMarker(marker);
-                }
+            if(newNoteViewModel.getOldLatLng() != null) {
+                MarkerOptions markerOptions = new MarkerOptions();
+                markerOptions.position(newNoteViewModel.getOldLatLng());
+                map.addMarker(markerOptions);
+            }
+
+            map.setOnMapClickListener(latLng1 -> {
+                map.clear();
+                String lat = String.format(Locale.getDefault(), "%.3f", latLng1.latitude);
+                String lng = String.format(Locale.getDefault(), "%.3f", latLng1.longitude);
+                MarkerOptions marker = new MarkerOptions().position(latLng1).title(lat + "," + lng);
+                latLng = latLng1;
+                map.addMarker(marker);
             });
         }
     };
@@ -110,24 +116,32 @@ public class MapsFragment extends Fragment {
     }
 
     private void requestPermission() {
-        ActivityResultLauncher<String[]> locationPermissionRequest = registerForActivityResult(
-                new ActivityResultContracts.RequestMultiplePermissions(), new ActivityResultCallback<Map<String, Boolean>>() {
-                    @Override
-                    public void onActivityResult(Map<String, Boolean> result) {
-                        boolean a = Boolean.TRUE.equals(result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false));
-                        if (a) {
-                            locationPermissionGranted = true;
-                        } else {
-                            Toast.makeText(
-                                    requireContext(),
-                                    "Unable to show location - permission required",
-                                    Toast.LENGTH_LONG
-                            ).show();
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        } else {
+
+
+            ActivityResultLauncher<String[]> locationPermissionRequest = registerForActivityResult(
+                    new ActivityResultContracts.RequestMultiplePermissions(), new ActivityResultCallback<Map<String, Boolean>>() {
+                        @Override
+                        public void onActivityResult(Map<String, Boolean> result) {
+                            boolean a = Boolean.TRUE.equals(result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false));
+                            if (a) {
+                                locationPermissionGranted = true;
+                            } else {
+                                Toast.makeText(
+                                        requireContext(),
+                                        "Unable to show location - permission required",
+                                        Toast.LENGTH_LONG
+                                ).show();
+                            }
                         }
-                    }
-                });
-        String[] arr = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
-        locationPermissionRequest.launch(arr);
+                    });
+            String[] arr = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
+            locationPermissionRequest.launch(arr);
+        }
 
 
     }

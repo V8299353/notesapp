@@ -33,7 +33,7 @@ public class LoginActivity extends AppCompatActivity {
         progressBarHandler = new ProgressBarHandler(this);
 
         activityLoginBinding.signInButton.setOnClickListener(v -> {
-            if (activityLoginBinding.email.getText() != null && activityLoginBinding.password.getText().toString().length() >= 6 && Helper.isValidEmail(activityLoginBinding.email.getText().toString())) {
+            if (activityLoginBinding.email.getText() != null && activityLoginBinding.password.getText()!=null && activityLoginBinding.password.getText().toString().length() >= 6 && Helper.isValidEmail(activityLoginBinding.email.getText().toString())) {
                 progressBarHandler.show();
                 AuthenticationHelper repo = new AuthenticationHelper();
                 repo.login(activityLoginBinding.email.getText().toString(), activityLoginBinding.password.getText().toString()).addOnCompleteListener(new OnCompleteListener<AuthResult>() {

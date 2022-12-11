@@ -26,7 +26,10 @@ public class FirstFragment extends Fragment implements OnNoteClick {
 
     @Override
     public void onNoteClicked(@NonNull TaskModel taskModel) {
-
+        Intent intent = new Intent(requireActivity(), NewNoteActivity.class);
+        intent.putExtra("IsNewTask",false);
+        intent.putExtra("TaskModel",taskModel);
+        startActivity(intent);
     }
 
     private FragmentFirstBinding binding;
@@ -44,9 +47,6 @@ public class FirstFragment extends Fragment implements OnNoteClick {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        tasksAdapter = new TasksAdapter(requireActivity(), this,new TasksAdapter.TaskDiff());
-        binding.homeRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.homeRecyclerView.setAdapter(tasksAdapter);
         fetchData();
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -65,9 +65,12 @@ public class FirstFragment extends Fragment implements OnNoteClick {
                 public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
                     if (context!=null) {
                         if (value != null) {
+                            tasksAdapter = new TasksAdapter(requireActivity(), FirstFragment.this,new TasksAdapter.TaskDiff());
+                            binding.homeRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+                            binding.homeRecyclerView.setAdapter(tasksAdapter);
                             tasksAdapter.submitList(value.toObjects(TaskModel.class));
                         } else {
-                                Toast.makeText(context, "Error Fetching Documents", Toast.LENGTH_LONG).show();
+                            Toast.makeText(context, "Error Fetching Documents", Toast.LENGTH_LONG).show();
                         }
                     }
                 }

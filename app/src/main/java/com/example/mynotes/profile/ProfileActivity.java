@@ -87,81 +87,79 @@ public class ProfileActivity extends AppCompatActivity {
             profileBinding.profileNameET.setText(currentUser.getDisplayName());
         }
 
-        profileBinding.profileSave.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                progressBarHandler.show();
-                if (profileImageUri != null) {
-                    storageHelper.uploadImage(profileImageUri).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
-                        @Override
-                        public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+        profileBinding.profileSave.setOnClickListener(v -> {
+            progressBarHandler.show();
+            if (profileImageUri != null) {
+                storageHelper.uploadImage(profileImageUri).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
 
-                            if (task.isSuccessful()) {
-                                storageHelper.getProfileStorageReference(currentUser.getUid()).getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Uri> task) {
-                                        if (task.isSuccessful()) {
-                                            String profileUri = task.getResult().toString();
-                                            authenticationHelper.updateProfile(
-                                                    profileBinding.profileNameET.getText().toString(), profileUri).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                @Override
-                                                public void onComplete(@NonNull Task<Void> task) {
-                                                    if (task.isSuccessful()) {
-                                                        Toast.makeText(
-                                                                ProfileActivity.this,
-                                                                "Profile Updated Successfully",
-                                                                Toast.LENGTH_LONG
-                                                        ).show();
-                                                    } else {
-                                                        Toast.makeText(
-                                                                ProfileActivity.this,
-                                                                "Profile Update Failed ",
-                                                                Toast.LENGTH_LONG
-                                                        ).show();
-                                                    }
-                                                    progressBarHandler.hide();
+                        if (task.isSuccessful()) {
+                            storageHelper.getProfileStorageReference(currentUser.getUid()).getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Uri> task) {
+                                    if (task.isSuccessful()) {
+                                        String profileUri = task.getResult().toString();
+                                        authenticationHelper.updateProfile(
+                                                profileBinding.profileNameET.getText().toString(), profileUri).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                            @Override
+                                            public void onComplete(@NonNull Task<Void> task) {
+                                                if (task.isSuccessful()) {
+                                                    Toast.makeText(
+                                                            ProfileActivity.this,
+                                                            "Profile Updated Successfully",
+                                                            Toast.LENGTH_LONG
+                                                    ).show();
+                                                } else {
+                                                    Toast.makeText(
+                                                            ProfileActivity.this,
+                                                            "Profile Update Failed ",
+                                                            Toast.LENGTH_LONG
+                                                    ).show();
                                                 }
-                                            });
-                                        } else {
-                                            Toast.makeText(
-                                                    ProfileActivity.this,
-                                                    "Profile Update Failed ",
-                                                    Toast.LENGTH_LONG
-                                            ).show();
-                                            progressBarHandler.hide();
-                                        }
+                                                progressBarHandler.hide();
+                                            }
+                                        });
+                                    } else {
+                                        Toast.makeText(
+                                                ProfileActivity.this,
+                                                "Profile Update Failed ",
+                                                Toast.LENGTH_LONG
+                                        ).show();
+                                        progressBarHandler.hide();
                                     }
-                                });
+                                }
+                            });
 
-                            } else {
-                                Toast.makeText(ProfileActivity.this, "Failed to save profile image", Toast.LENGTH_LONG)
-                                        .show();
-                                progressBarHandler.hide();
-                            }
-                        }
-                    });
-                } else {
-                    authenticationHelper.updateProfile(
-                            profileBinding.profileNameET.getText().toString(),
-                            currentUser.getPhotoUrl().toString()
-                    ).addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            if (task.isSuccessful()) {
-                                Toast.makeText(
-                                        ProfileActivity.this,
-                                        "Profile Updated Successfully",
-                                        Toast.LENGTH_LONG
-                                ).show();
-                            } else {
-                                Toast.makeText(
-                                        ProfileActivity.this,
-                                        "Profile Update Failed ",
-                                        Toast.LENGTH_LONG
-                                ).show();
-                            }
+                        } else {
+                            Toast.makeText(ProfileActivity.this, "Failed to save profile image", Toast.LENGTH_LONG)
+                                    .show();
                             progressBarHandler.hide();
                         }
+                    }
+                });
+            } else {
+                String uri = null;
+                if(currentUser.getPhotoUrl()!=null){
+                    uri = currentUser.getPhotoUrl().toString();
+                    authenticationHelper.updateProfile(
+                            profileBinding.profileNameET.getText().toString(),
+                            uri
+                    ).addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(
+                                    ProfileActivity.this,
+                                    "Profile Updated Successfully",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        } else {
+                            Toast.makeText(
+                                    ProfileActivity.this,
+                                    "Profile Update Failed ",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
+                        progressBarHandler.hide();
                     });
                 }
             }

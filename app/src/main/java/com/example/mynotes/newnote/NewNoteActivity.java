@@ -2,18 +2,15 @@ package com.example.mynotes.newnote;
 
 import android.os.Build;
 import android.os.Bundle;
-
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
-
 import com.example.mynotes.R;
 import com.example.mynotes.TaskModel;
 
 public class NewNoteActivity extends AppCompatActivity {
 
     private NewNoteViewModel viewModel;
-
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {

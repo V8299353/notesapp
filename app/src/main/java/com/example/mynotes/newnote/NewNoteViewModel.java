@@ -18,6 +18,20 @@ public class NewNoteViewModel extends ViewModel {
 
     private boolean isNewTask = true;
 
+    private LatLng oldLatLng = null;
+
+    void setOldLatLng(LatLng latLng) {
+        this.oldLatLng = latLng;
+    }
+
+    LatLng getOldLatLng() {
+        return  oldLatLng;
+    }
+
+    void setLatLngFromUrl(String url) {
+        String[] latLng = url.replace("https://www.google.com/maps/place/","").split(",");
+        setOldLatLng(new LatLng(Double.parseDouble(latLng[0]),Double.parseDouble(latLng[1])));
+    }
 
     void setLatLng(LatLng latLng) {
         this.latLng.postValue(latLng);

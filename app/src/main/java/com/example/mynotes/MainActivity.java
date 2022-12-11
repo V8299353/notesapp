@@ -3,11 +3,13 @@ package com.example.mynotes;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.MenuProvider;
 
 import com.example.mynotes.databinding.ActivityMainBinding;
 import com.example.mynotes.profile.ProfileActivity;
@@ -22,20 +24,24 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         setSupportActionBar(binding.toolbar);
-    }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
 
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_profile){
-            startActivity(new Intent(this, ProfileActivity.class));
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
+        this.addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+                menuInflater.inflate(R.menu.menu_main, menu);
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (menuItem.getItemId() == R.id.action_profile) {
+                    Intent profileIntent = new Intent(MainActivity.this, ProfileActivity.class);
+                    startActivity(profileIntent);
+                    return true;
+                }
+                return false;
+            }
+        });
+
     }
 }

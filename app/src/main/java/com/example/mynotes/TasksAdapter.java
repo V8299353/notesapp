@@ -52,8 +52,10 @@ public class TasksAdapter extends ListAdapter<TaskModel, TasksAdapter.VH> {
         String mapUrl = getItem(position).getMapUrl();
         if (mapUrl != null) {
             binding.mapLink.setText(mapUrl);
+            binding.mapIcon.setVisibility(View.VISIBLE);
         } else {
             binding.mapLink.setVisibility(View.GONE);
+            binding.mapIcon.setVisibility(View.GONE);
         }
 
         String imageUrl = getItem(position).getImageUrl();
@@ -76,12 +78,7 @@ public class TasksAdapter extends ListAdapter<TaskModel, TasksAdapter.VH> {
             binding.dateModified.setVisibility(View.GONE);
         }
 
-        binding.getRoot().setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onNoteClickA.onNoteClicked(getItem(position));
-            }
-        });
+        binding.getRoot().setOnClickListener(v -> onNoteClickA.onNoteClicked(getItem(position)));
     }
 
     static class TaskDiff extends DiffUtil.ItemCallback<TaskModel> {
